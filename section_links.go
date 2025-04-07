@@ -548,11 +548,6 @@ func (l *Link) GetLengthInKm() float64 {
 	}
 }
 
-// Helper function to check if a rune is a digit
-func isDigit(c rune) bool {
-	return c >= '0' && c <= '9'
-}
-
 // GetSpeedInKmh parses the V0PRT string and returns the value in km/h
 func (l *Link) GetSpeedInKmh() float64 {
 	if l.V0PRT == "" {

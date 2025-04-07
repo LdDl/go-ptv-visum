@@ -36,6 +36,9 @@ type PTVData struct {
 	Zone             *ZoneSection
 	LinkType         *LinkTypeSection
 	Link             *LinkSection
+	LinkPoly         *LinkPolySection
+	Turn             *TurnSection
+	Connector        *ConnectorSection
 
 	Sections map[string]Section // Generic access to all sections
 }
@@ -138,6 +141,12 @@ func ReadPTVFromFile(reader io.Reader) (*PTVData, error) {
 				data.LinkType = &LinkTypeSection{BaseSection: *currentSection}
 			case "LINK":
 				data.Link = &LinkSection{BaseSection: *currentSection}
+			case "LINKPOLY":
+				data.LinkPoly = &LinkPolySection{BaseSection: *currentSection}
+			case "TURN":
+				data.Turn = &TurnSection{BaseSection: *currentSection}
+			case "CONNECTOR":
+				data.Connector = &ConnectorSection{BaseSection: *currentSection}
 
 			default:
 				// return nil, fmt.Errorf("unsupported section: %s", sectionName)
@@ -372,6 +381,30 @@ func ReadPTVFromFile(reader io.Reader) (*PTVData, error) {
 						return nil, fmt.Errorf("error parsing LINK data: %w", err)
 					}
 					data.Link.Links = append(data.Link.Links, link)
+				}
+			case "LINKPOLY":
+				if data.LinkPoly != nil {
+					point, err := getLinkPolyPoint(values)
+					if err != nil {
+						return nil, fmt.Errorf("error parsing LINKPOLY data: %w", err)
+					}
+					data.LinkPoly.Points = append(data.LinkPoly.Points, point)
+				}
+			case "TURN":
+				if data.Turn != nil {
+					turn, err := getTurn(values)
+					if err != nil {
+						return nil, fmt.Errorf("error parsing TURN data: %w", err)
+					}
+					data.Turn.Turns = append(data.Turn.Turns, turn)
+				}
+			case "CONNECTOR":
+				if data.Connector != nil {
+					connector, err := getConnector(values, data.Connector.Headers())
+					if err != nil {
+						return nil, fmt.Errorf("error parsing CONNECTOR data: %w", err)
+					}
+					data.Connector.Connectors = append(data.Connector.Connectors, connector)
 				}
 			default:
 				// return nil, fmt.Errorf("unsupported section: %s", currentSection.name)

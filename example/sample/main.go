@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"sort"
 	"strings"
@@ -619,4 +620,268 @@ func main() {
 			}
 		}
 	}
+
+	fmt.Println("\nLink Polygons:")
+	fmt.Printf("Total points: %d\n", ptvData.LinkPoly.Count())
+	fmt.Printf("Unique links with geometry: %d\n", ptvData.LinkPoly.CountLinks())
+	// Get the bounding box
+	minX, minY, minZ, maxX, maxY, maxZ := ptvData.LinkPoly.GetBoundingBox()
+	fmt.Printf("Geometry extent: (%.4f, %.4f, %.4f) to (%.4f, %.4f, %.4f)\n",
+		minX, minY, minZ, maxX, maxY, maxZ)
+	// Find all links with geometry
+	links := ptvData.LinkPoly.GetAllLinks()
+	fmt.Println("Some links with detailed geometry (first 5):")
+	for i, link := range links {
+		if i < 5 {
+			fromNodeNo := link[0]
+			toNodeNo := link[1]
+			points := ptvData.LinkPoly.GetPointsByLink(fromNodeNo, toNodeNo)
+			length := ptvData.LinkPoly.CalculateLinkLength(fromNodeNo, toNodeNo)
+			fmt.Printf("\tLink %d->%d: %d points, length: %.4f\n",
+				fromNodeNo, toNodeNo, len(points), length)
+			// Print first three points as example
+			for j, point := range points {
+				if j < 3 {
+					fmt.Printf("\t\tPoint %d: (%.4f, %.4f, %.4f)\n",
+						point.Index, point.XCoord, point.YCoord, point.ZCoord)
+				}
+			}
+		}
+	}
+	// Check if geometry exists for a specific link
+	fromNodeNo := 201
+	toNodeNo := 11
+	if ptvData.LinkPoly.HasLinkGeometry(fromNodeNo, toNodeNo) {
+		geometry := ptvData.LinkPoly.GetLinkGeometry(fromNodeNo, toNodeNo)
+		fmt.Printf("Link %d->%d has %d geometry points\n", fromNodeNo, toNodeNo, len(geometry))
+		// Example of extracting 2D geometry for GIS visualization
+		coords2D := make([][2]float64, len(geometry))
+		for i, point := range geometry {
+			coords2D[i] = [2]float64{point[0], point[1]}
+		}
+		// (These coordinates could be exported to GeoJSON or another GIS format)
+	} else {
+		fmt.Printf("Link %d->%d has no detailed geometry\n", fromNodeNo, toNodeNo)
+	}
+
+	fmt.Println("\nTurns:")
+	fmt.Printf("Total turns: %d\n", ptvData.Turn.Count())
+	// Analyze turn distribution by type
+	leftTurns := ptvData.Turn.GetLeftTurns()
+	rightTurns := ptvData.Turn.GetRightTurns()
+	throughTurns := ptvData.Turn.GetThroughTurns()
+	uTurns := ptvData.Turn.GetUTurns()
+	fmt.Printf("Turn distribution by type:\n")
+	fmt.Printf("\tLeft turns: %d (%.1f%%)\n",
+		len(leftTurns), float64(len(leftTurns))*100/float64(ptvData.Turn.Count()))
+	fmt.Printf("\tRight turns: %d (%.1f%%)\n",
+		len(rightTurns), float64(len(rightTurns))*100/float64(ptvData.Turn.Count()))
+	fmt.Printf("\tThrough movements: %d (%.1f%%)\n",
+		len(throughTurns), float64(len(throughTurns))*100/float64(ptvData.Turn.Count()))
+	fmt.Printf("\tU-turns: %d (%.1f%%)\n",
+		len(uTurns), float64(len(uTurns))*100/float64(ptvData.Turn.Count()))
+	// Calculate average turn times
+	leftTime := 0.0
+	rightTime := 0.0
+	throughTime := 0.0
+	uTime := 0.0
+	if len(leftTurns) > 0 {
+		for _, turn := range leftTurns {
+			leftTime += turn.GetTravelTime()
+		}
+		leftTime /= float64(len(leftTurns))
+	}
+	if len(rightTurns) > 0 {
+		for _, turn := range rightTurns {
+			rightTime += turn.GetTravelTime()
+		}
+		rightTime /= float64(len(rightTurns))
+	}
+	if len(throughTurns) > 0 {
+		for _, turn := range throughTurns {
+			throughTime += turn.GetTravelTime()
+		}
+		throughTime /= float64(len(throughTurns))
+	}
+	if len(uTurns) > 0 {
+		for _, turn := range uTurns {
+			uTime += turn.GetTravelTime()
+		}
+		uTime /= float64(len(uTurns))
+	}
+	fmt.Printf("Average turn times:\n")
+	fmt.Printf("\tLeft turns: %.1f seconds\n", leftTime)
+	fmt.Printf("\tRight turns: %.1f seconds\n", rightTime)
+	fmt.Printf("\tThrough movements: %.1f seconds\n", throughTime)
+	fmt.Printf("\tU-turns: %.1f seconds\n", uTime)
+	// Analyze intersections
+	nodeCounts := ptvData.Turn.CountByIntersection()
+	maxCount := 0
+	busyNode := 0
+	for node, count := range nodeCounts {
+		if count > maxCount {
+			maxCount = count
+			busyNode = node
+		}
+	}
+	fmt.Printf("Busiest intersection is node %d with %d turning movements\n", busyNode, maxCount)
+	// Show details for that intersection
+	nodeTurns := ptvData.Turn.GetTurnsByIntersection(busyNode)
+	fmt.Printf("Turns at node %d:\n", busyNode)
+	for _, turn := range nodeTurns {
+		turnType := "Unknown"
+		switch turn.TypeNo {
+		case 1:
+			turnType = "Left"
+		case 2:
+			turnType = "Right"
+		case 3:
+			turnType = "Through"
+		case 4:
+			turnType = "U-turn"
+		}
+		fmt.Printf("\t%d→%d→%d: %s turn, time: %s, capacity: %d\n",
+			turn.FromNodeNo, turn.ViaNodeNo, turn.ToNodeNo, turnType, turn.T0PRT, turn.CapPRT)
+	}
+	// Find a specific turn
+	fromNode := 8
+	viaNode := 7
+	toNode := 45
+	if turn, found := ptvData.Turn.GetTurn(fromNode, viaNode, toNode); found {
+		turnType := "Unknown"
+		switch turn.TypeNo {
+		case 1:
+			turnType = "Left"
+		case 2:
+			turnType = "Right"
+		case 3:
+			turnType = "Through"
+		case 4:
+			turnType = "U-turn"
+		}
+		fmt.Printf("\nDetails for turn %d→%d→%d:\n", fromNode, viaNode, toNode)
+		fmt.Printf("\tType: %s turn (TypeNo: %d)\n", turnType, turn.TypeNo)
+		fmt.Printf("\tTravel time: %s (%.1f seconds)\n", turn.T0PRT, turn.GetTravelTime())
+		fmt.Printf("\tCapacity: %d veh/h\n", turn.CapPRT)
+		fmt.Printf("\tAllowed transport systems: %s\n", turn.TSysSet)
+		// Show more detailed properties if they exist
+		fmt.Printf("\tSaturation flow rate: %.1f\n", turn.ICAPresetSatFlowRate)
+		fmt.Printf("\tCritical gap: %s\n", turn.ICAPresetCriticalGap)
+		fmt.Printf("\tFollowup time: %s\n", turn.ICAPresetFollowupTime)
+		if turn.ICATurningRadius != "" {
+			fmt.Printf("\tTurning radius: %s\n", turn.ICATurningRadius)
+		}
+	}
+
+	fmt.Println("\nConnectors:")
+	fmt.Printf("Total connectors: %d\n", ptvData.Connector.Count())
+	fmt.Printf("Origin connectors: %d\n", ptvData.Connector.CountOriginConnectors())
+	fmt.Printf("Destination connectors: %d\n", ptvData.Connector.CountDestinationConnectors())
+	// Calculate connector statistics
+	totalLength = ptvData.Connector.GetTotalConnectorLength()
+	avgCarTime := ptvData.Connector.GetAverageTravelTime("CAR")
+	avgWalkTime := ptvData.Connector.GetAverageTravelTime("W")
+	fmt.Printf("Connector statistics:\n")
+	fmt.Printf("\tTotal length: %.2f km\n", totalLength)
+	fmt.Printf("\tAverage car travel time: %.2f seconds\n", avgCarTime)
+	fmt.Printf("\tAverage walking time: %.2f seconds\n", avgWalkTime)
+	// Get connectors for a specific zone
+	zoneNo := 4
+	zoneConnectors := ptvData.Connector.GetConnectorsByZone(zoneNo)
+	fmt.Printf("Zone %d has %d connectors:\n", zoneNo, len(zoneConnectors))
+	// Show origin and destination connectors
+	originCount := 0
+	destCount := 0
+	for _, connector := range zoneConnectors {
+		if connector.IsOriginConnector() {
+			originCount++
+		} else {
+			destCount++
+		}
+	}
+	fmt.Printf("\tOrigin connectors: %d\n", originCount)
+	fmt.Printf("\tDestination connectors: %d\n", destCount)
+	// Show details for each connector
+	for i, connector := range zoneConnectors {
+		direction := "Origin"
+		if connector.Direction == "D" {
+			direction = "Destination"
+		}
+		fmt.Printf("\t\t%d. %s connector to node %d\n", i+1, direction, connector.NodeNo)
+		fmt.Printf("\t\t\tLength: %s (%.3f km)\n", connector.Length, connector.GetLengthInKm())
+		fmt.Printf("\t\t\tCar travel time: %s (%.1f seconds)\n",
+			connector.T0TSys["CAR"], connector.GetTravelTimeSeconds("CAR"))
+		fmt.Printf("\t\t\tWalk travel time: %s (%.1f seconds)\n",
+			connector.T0TSys["W"], connector.GetTravelTimeSeconds("W"))
+		fmt.Printf("\t\t\tWeights: PRT=%.2f, PUT=%.2f\n",
+			connector.WeightPRT, connector.WeightPUT)
+	}
+	// Analyze zone connectivity
+	zoneConnectivity := ptvData.Connector.GetZoneConnectivity()
+	fmt.Printf("Zone connectivity:\n")
+	fmt.Printf("\tMin connectors: %d\n", minMapValue(zoneConnectivity))
+	fmt.Printf("\tMax connectors: %d\n", maxMapValue(zoneConnectivity))
+	fmt.Printf("\tAvg connectors: %.2f\n", avgMapValue(zoneConnectivity))
+	// Find zones with most connectors
+	mostConnectors := 0
+	mostConnectedZone := 0
+	for zone, count := range zoneConnectivity {
+		if count > mostConnectors {
+			mostConnectors = count
+			mostConnectedZone = zone
+		}
+	}
+	fmt.Printf("Zone %d has the most connectors: %d\n", mostConnectedZone, mostConnectors)
+	// Find a specific connector
+	zoneNo = 1
+	nodeNo = 1263
+	direction := "O"
+	if connector, found := ptvData.Connector.GetConnector(zoneNo, nodeNo, direction); found {
+		dirType := "Origin"
+		if direction == "D" {
+			dirType = "Destination"
+		}
+		fmt.Printf("Details for %s connector from zone %d to node %d:\n",
+			dirType, zoneNo, nodeNo)
+		fmt.Printf("\tLength: %s (%.3f km)\n", connector.Length, connector.GetLengthInKm())
+		fmt.Printf("\tTransport systems: %s\n", connector.TSysSet)
+		fmt.Printf("\tTravel times by mode:\n")
+		for tsys, time := range connector.T0TSys {
+			fmt.Printf("\t\t%s: %s (%.1f seconds)\n",
+				tsys, time, connector.GetTravelTimeSeconds(tsys))
+		}
+	}
+}
+
+// Helper functions for statistics
+func minMapValue(m map[int]int) int {
+	min := math.MaxInt32
+	for _, v := range m {
+		if v < min {
+			min = v
+		}
+	}
+	return min
+}
+
+func maxMapValue(m map[int]int) int {
+	max := math.MinInt32
+	for _, v := range m {
+		if v > max {
+			max = v
+		}
+	}
+	return max
+}
+
+func avgMapValue(m map[int]int) float64 {
+	if len(m) == 0 {
+		return 0
+	}
+
+	sum := 0
+	for _, v := range m {
+		sum += v
+	}
+	return float64(sum) / float64(len(m))
 }
