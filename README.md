@@ -42,3 +42,24 @@ W.I.P.
 
     }
     ```
+
+* Those sections ARE NOT supported currently:
+    * Table: Stops
+    * Table: Stop areas
+    * Table: Stop points
+    * Table: Lines
+    * Table: Line routes
+    * Table: Line route items
+    * Table: Time profiles
+    * Table: Time profile items
+    * Table: Vehicle journeys
+    * Table: Vehicle journey sections
+    * Table: Transfer walk times between stop areas
+    * Table: Block versions
+    * Table: Points of interest: State (32)
+    * Table: Points of interest: County (33)
+    * Table: Points of interest: Municipality (34)
+    * Table: Legs
+    * Table: Lanes
+    * Table: Lane turns
+    * Table: Crosswalks
