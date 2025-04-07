@@ -147,9 +147,12 @@ func ReadPTVFromFile(reader io.Reader) (*PTVData, error) {
 				data.Turn = &TurnSection{BaseSection: *currentSection}
 			case "CONNECTOR":
 				data.Connector = &ConnectorSection{BaseSection: *currentSection}
-
+			// Skip these public transit and specialized sections in one case
+			case "STOP", "STOPAREA", "STOPPOINT", "LINE", "LINEROUTE", "LINEROUTEITEM",
+				"TIMEPROFILE", "TIMEPROFILEITEM", "VEHJOURNEY", "VEHJOURNEYSECTION",
+				"TRANSFERWALKTIMESTOPAREA", "BLOCKVERSION", "POIOFCAT_32", "POIOFCAT_33", "POIOFCAT_34", "LEG", "LANE", "LANETURN", "CROSSWALK":
 			default:
-				// return nil, fmt.Errorf("unsupported section: %s", sectionName)
+				return nil, fmt.Errorf("unsupported section: %s", sectionName)
 			}
 
 			continue
@@ -406,8 +409,12 @@ func ReadPTVFromFile(reader io.Reader) (*PTVData, error) {
 					}
 					data.Connector.Connectors = append(data.Connector.Connectors, connector)
 				}
+			// Skip these public transit and specialized sections in one case
+			case "STOP", "STOPAREA", "STOPPOINT", "LINE", "LINEROUTE", "LINEROUTEITEM",
+				"TIMEPROFILE", "TIMEPROFILEITEM", "VEHJOURNEY", "VEHJOURNEYSECTION",
+				"TRANSFERWALKTIMESTOPAREA", "BLOCKVERSION", "POIOFCAT_32", "POIOFCAT_33", "POIOFCAT_34", "LEG", "LANE", "LANETURN", "CROSSWALK":
 			default:
-				// return nil, fmt.Errorf("unsupported section: %s", currentSection.name)
+				return nil, fmt.Errorf("unsupported section file parsing: %s", currentSection.name)
 			}
 		}
 	}
