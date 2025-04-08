@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/lddl/go-ptv-visum/utils"
 )
 
 // LinkSection represents $LINK section
@@ -523,7 +525,7 @@ func (l *Link) GetLengthInKm() float64 {
 
 	// Find where the numeric part ends
 	for i, c := range l.Length {
-		if !isDigit(c) && c != '.' && c != ',' {
+		if !utils.IsDigit(c) && c != '.' && c != ',' {
 			numStr = l.Length[:i]
 			unit = strings.ToLower(l.Length[i:])
 			break
@@ -559,7 +561,7 @@ func (l *Link) GetSpeedInKmh() float64 {
 
 	// Find where the numeric part ends
 	for i, c := range l.V0PRT {
-		if !isDigit(c) && c != '.' && c != ',' {
+		if !utils.IsDigit(c) && c != '.' && c != ',' {
 			numStr = l.V0PRT[:i]
 			break
 		}

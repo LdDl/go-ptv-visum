@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/lddl/go-ptv-visum/utils"
 )
 
 // ConnectorSection represents $CONNECTOR section
@@ -314,7 +316,7 @@ func (c *Connector) GetLengthInKm() float64 {
 
 	// Find where the numeric part ends
 	for i, ch := range c.Length {
-		if !isDigit(ch) && ch != '.' && ch != ',' {
+		if !utils.IsDigit(ch) && ch != '.' && ch != ',' {
 			numStr = c.Length[:i]
 			unit = strings.ToLower(c.Length[i:])
 			break
@@ -352,7 +354,7 @@ func (c *Connector) GetTravelTimeSeconds(tsys string) float64 {
 
 	// Find where the numeric part ends
 	for i, ch := range timeStr {
-		if !isDigit(ch) && ch != '.' && ch != ',' {
+		if !utils.IsDigit(ch) && ch != '.' && ch != ',' {
 			numStr = timeStr[:i]
 			unit = strings.ToLower(timeStr[i:])
 			break

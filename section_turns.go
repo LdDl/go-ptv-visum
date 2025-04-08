@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/lddl/go-ptv-visum/utils"
 )
 
 // TurnSection represents $TURN section
@@ -180,7 +182,7 @@ func (t *Turn) GetTravelTime() float64 {
 
 	// Find where the numeric part ends
 	for i, c := range t.T0PRT {
-		if !isDigit(c) && c != '.' && c != ',' {
+		if !utils.IsDigit(c) && c != '.' && c != ',' {
 			numStr = t.T0PRT[:i]
 			break
 		}
