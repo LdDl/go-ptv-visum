@@ -5,7 +5,7 @@ import (
 	"os"
 
 	ptvvisum "github.com/lddl/go-ptv-visum"
-	"github.com/lddl/go-ptv-visum/graph"
+	"github.com/lddl/go-ptv-visum/roadnet"
 	"github.com/lddl/go-ptv-visum/utils"
 )
 
@@ -21,7 +21,7 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	roadNetwork, err := graph.ExtractGraph(ptvData)
+	roadNetwork, err := roadnet.ExtractGraph(ptvData)
 	if err != nil {
 		fmt.Println(err)
 		return
