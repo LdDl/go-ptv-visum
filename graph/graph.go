@@ -15,6 +15,13 @@ type Edge struct {
 	Target   int
 	Geometry [][]float64
 	LinkID   int
+
+	LanesNum int
+	// meters
+	Length float64
+	// km/h
+	FreeFlowSpeed float64
+	Capacity      int
 }
 
 // Vertex is a struct representing a graph vertex
@@ -81,7 +88,20 @@ func ExtractGraph(ptv *ptvvisum.PTVData) (Graph, error) {
 			Target:   toNodeID,
 			Geometry: geometry,
 			LinkID:   link.No,
+
+			LanesNum: link.NumLanes,
+			Capacity: link.CapPRT,
 		}
+		length, err := utils.ParseLengthValue(link.Length)
+		if err != nil {
+			return Graph{}, fmt.Errorf("failed to parse length for link %d: %w", link.No, err)
+		}
+		edge.Length = length
+		freeFlowSpeed, err := utils.ParseSpeedValue(link.V0PRT)
+		if err != nil {
+			return Graph{}, fmt.Errorf("failed to parse free flow speed for link %d: %w", link.No, err)
+		}
+		edge.FreeFlowSpeed = freeFlowSpeed
 		edges[edgeID] = edge
 		if _, ok := mapEdges[fromNodeID]; !ok {
 			mapEdges[fromNodeID] = make(map[int]*Edge)
